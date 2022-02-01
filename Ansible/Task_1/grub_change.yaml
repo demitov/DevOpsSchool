@@ -1,0 +1,26 @@
+---
+- name: Change /etc/defaul/grub settings
+  hosts: all
+  user: ansible
+  become: yes
+  become_method: sudo
+  become_user: root
+
+  tasks:
+  - name: Add net.ifnames=0 in grub
+    lineinfile:
+      path: /etc/default/grub
+      backrefs: yes
+      regexp: '^(.*)(\snet\.ifnames=\d)(.*)$'
+      line: '\1 net.ifnames=0\3'
+      state: present
+  - name: Add biosdevname=0 in grub
+    lineinfile:
+      path: /etc/default/grub
+      backrefs: yes
+      regexp: '^(.*)(\sbiosdevname=\d)(.*)$'
+      line: '\1 biosdevname=0\3'
+      state: present
+  - name: Run grub2-mkconfig command
+    command: grub2-mkconfig -o /boot/grub2/grub.cfg
+...

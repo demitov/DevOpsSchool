@@ -1,0 +1,31 @@
+---
+- name: Web server httpd remove
+  hosts: all
+  user: ansible
+  become: yes
+  become_method: sudo
+  become_user: root
+
+  tasks:
+  - name: Stop httpd service
+    systemd:
+      name: httpd.service
+      state: stopped
+  - name: Remove httpd package
+    dnf:
+      name: httpd
+      state: absent
+  - name: Remove index.html
+    file:
+      path: /var/www/html/index.html
+      state: absent
+  - name: Remove firewall rule
+    firewalld:
+      service: http
+      permanent: true
+      state: disabled
+  - name: Reload firewalld
+    systemd:
+      name: firewalld.service
+      state: reloaded
+...
