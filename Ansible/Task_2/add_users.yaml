@@ -1,0 +1,19 @@
+---
+- name: Add users
+  hosts: all
+  user: ansible
+  become: yes
+  become_method: sudo
+  become_user: root
+  vars_files:
+    - users.yaml
+
+  tasks:
+  - name: Add users
+    user:
+      name: "{{ item.username }}"
+      comment: "{{ item.username }}@example.com"
+      create_home: yes
+      password: "{{ item.password | password_hash('sha512')}}"
+    with_items: "{{ users }}"
+  
