@@ -1,0 +1,38 @@
+# tasks file for apache_deploy
+---
+  - name: Install httpd and firewalld packages
+    dnf:
+      name: ['httpd', 'firewalld']
+      state: latest
+  - name: Copy index.html file
+    copy:
+      src: index.html
+      dest: /var/www/html/index.html
+      owner: 
+      group: 
+      mode: 0644
+  - name: Enable services
+    systemd:
+      name: "{{ item }}"
+      enabled: yes
+      daemon_reload: yes
+    with_items:
+      - httpd.service
+      - firewalld.service
+  - name: Start services
+    systemd:
+      name: "{{ item }}"
+      state: started
+    with_items:
+      - httpd.service
+      - firewalld.service
+  - name: Add firewall rule
+    firewalld:
+      service: http
+      permanent: true
+      state: enabled
+  - name: Restart firewalld
+    systemd:
+      name: firewalld
+      state: restarted
+...

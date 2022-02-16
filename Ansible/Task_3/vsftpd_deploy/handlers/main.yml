@@ -1,0 +1,10 @@
+---
+# handlers file for vsftpd_deploy
+- name: firewalld_restart
+  systemd:
+    name: firewalld
+    state: restarted
+- name: vsftpd_restart
+  systemd:
+    name: vsftpd
+    state: restarted

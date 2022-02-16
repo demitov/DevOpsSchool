@@ -1,0 +1,52 @@
+---
+# tasks file for vsftpd_deploy
+- name: Install vsftpd, firewalld and Python libs for SElinux
+  dnf:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - firewalld
+    - vsftpd
+    - python3-libselinux
+    - python3-libsemanage
+    - python3-policycoreutils
+- name: Enable and start firewalld service
+  systemd:
+    name: firewalld
+    state: started
+    enabled: yes
+    daemon_reload: yes
+- name: Add rules to firewalld service
+  firewalld:
+    service: ftp
+    permanent: true
+    state: enabled
+    immediate: yes
+  notify:
+    firewalld_restart
+- name: Copy conf file
+  copy:
+    src: vsftpd.conf
+    dest: /etc/vsftpd/vsftpd.conf
+    mode: 600
+    owner: root
+    group: root
+  notify:
+    vsftpd_restart
+- name: Create upload dir
+  file:
+    path: /var/ftp/pub/upload
+    state: directory
+    mode: 0777
+- name: Allow anonymous write in SElinux
+  seboolean:
+    name: ftpd_anon_write
+    state: true
+    persistent: yes
+- name: Allow vsftpd modify files in /var/ftp/pub/upload dir
+  sefcontext:
+    target: "/var/ftp/pub/upload(/.*)?"
+    setype: public_content_rw_t
+    state: present
+- name: Apply new SELinux file context to filesystem
+  command: restorecon -irv /var/ftp/pub/upload
