@@ -1,0 +1,24 @@
+git clone git@github.com:aleksei-sokolov/devops-school-git.git
+cd devops-school-git
+git config user.name "Demitry Demitov"
+git config user.email demitov@gmail.com
+git branch -r | grep -v '\->' | sed "s,\x1B\[[0-9;]*[a-zA-Z],,g" | while read remote; do git branch --track "${remote#origin/}" "$remote"; done
+git fetch --all
+git remote set-url origin git@github.com:demitov/devops-school-git.git
+git push --all
+git checkout master
+git rebase bugfix
+git rebase roadmap
+git rebase new_feature
+git show e6cf891
+vi code.txt
+git add code.txt 
+git rebase --continue
+git show cbea03c
+vi test_results.txt
+git add test_results.txt
+git rebase --continue
+nano author.txt
+git add author.txt
+git commit -m "Add author"
+git push
