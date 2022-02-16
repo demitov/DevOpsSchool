@@ -38,15 +38,9 @@
     path: /var/ftp/pub/upload
     state: directory
     mode: 0777
+    setype: public_content_rw_t
 - name: Allow anonymous write in SElinux
   seboolean:
     name: ftpd_anon_write
     state: true
     persistent: yes
-- name: Allow vsftpd modify files in /var/ftp/pub/upload dir
-  sefcontext:
-    target: "/var/ftp/pub/upload(/.*)?"
-    setype: public_content_rw_t
-    state: present
-- name: Apply new SELinux file context to filesystem
-  command: restorecon -irv /var/ftp/pub/upload
