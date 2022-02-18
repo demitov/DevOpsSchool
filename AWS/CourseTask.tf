@@ -37,10 +37,11 @@ resource "aws_instance" "wordpress_ec2" {
   ami                    = "ami-08cfb7b19d5cd546d"
   instance_type          = "t2.micro"
   vpc_security_group_ids = [aws_security_group.wordpress_sg.id]
-  user_data              = <<EOF
-#!/bin/bash
-yum -y update
-EOF
+  # user_data              = <filename>
+  tags = {
+    name  = "WordPress EC2"
+    owner = "Dmitry Demitov"
+  }
 }
 
 #------------------------------------
@@ -78,5 +79,10 @@ resource "aws_security_group" "wordpress_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
     # ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = {
+    name  = "WordPress SG"
+    owner = "Dmitry Demitov"
   }
 }
