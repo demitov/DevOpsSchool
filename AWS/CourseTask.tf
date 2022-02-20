@@ -36,7 +36,7 @@ data "aws_availability_zones" "available" {
 # 172.16.0.0  - 172.31..255.255
 # 192.168.0.0 - 192.168.255.255
 
-resource "aws_vpc" "wordpress_vpc" {
+resource "aws_vpc" "main" {
   cidr_block       = "10.0.0.0/16"
   instance_tenancy = "default"
 
@@ -50,7 +50,7 @@ resource "aws_vpc" "wordpress_vpc" {
 # Create first subnet
 #------------------------------------
 resource "aws_subnet" "wordpress_subnet_a" {
-  vpc_id            = aws_vpc.wordpress_vpc.id
+  vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.1.0/24"
   availability_zone = data.aws_availability_zones.available.names[0]
 
@@ -64,7 +64,7 @@ resource "aws_subnet" "wordpress_subnet_a" {
 # Create second subnet
 #------------------------------------
 resource "aws_subnet" "wordpress_subnet_b" {
-  vpc_id            = aws_vpc.wordpress_vpc.id
+  vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.2.0/24"
   availability_zone = data.aws_availability_zones.available.names[1]
 
@@ -81,7 +81,7 @@ resource "aws_instance" "wordpress_ec2_a" {
   ami                    = "ami-08cfb7b19d5cd546d"
   instance_type          = "t2.micro"
   vpc_security_group_ids = [aws_security_group.wordpress_sg.id]
-  subnet_id = aws_subnet.wordpress_subnet_a.id
+  subnet_id              = aws_subnet.wordpress_subnet_a.id
 
   tags = {
     Name  = "WordPress EC2 in ${data.aws_availability_zones.available.names[0]}"
@@ -96,8 +96,8 @@ resource "aws_instance" "wordpress_ec2_b" {
   ami                    = "ami-08cfb7b19d5cd546d"
   instance_type          = var.instance_type
   vpc_security_group_ids = [aws_security_group.wordpress_sg.id]
-  subnet_id = aws_subnet.wordpress_subnet_b.id
-  
+  subnet_id              = aws_subnet.wordpress_subnet_b.id
+
   tags = {
     Name  = "WordPress EC2 in ${data.aws_availability_zones.available.names[1]}"
     Owner = "Dmitry Demitov"
@@ -110,7 +110,7 @@ resource "aws_instance" "wordpress_ec2_b" {
 resource "aws_security_group" "wordpress_sg" {
   name        = "wordpress_SG"
   description = "HA WordPress Web server"
-  vpc_id      = aws_vpc.wordpress_vpc.id
+  vpc_id      = aws_vpc.main.id
 
   # входящий трафик по 80 порту с любых внешних адресов по протоколу tcp
   ingress {
@@ -146,3 +146,17 @@ resource "aws_security_group" "wordpress_sg" {
     Owner = "Dmitry Demitov"
   }
 }
+
+# #------------------------------------
+# # Create MySql instance (RDS)
+# #------------------------------------
+# resource "aws_db_instance" "wordpress_db" {
+#   allocated_storage = 10
+#   engine            = "mysql"
+#   engine_version    = "5.7"
+#   instance_class    = "db.t2.micro"
+#   db_name           = "wpdb"
+#   username          = var.db_username
+#   password          = var.db_password
+#   # availability_zone = ${data.aws_availability_zones.available.names[?]}
+# }
