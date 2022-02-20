@@ -20,7 +20,7 @@ terraform {
 # регион paris (eu-west-3)
 provider "aws" {
   profile = "default"
-  region  = "eu-west-3"
+  region  = var.aws_region
 }
 
 # получаем список доступых в регионе зон
@@ -55,7 +55,7 @@ resource "aws_subnet" "wordpress_subnet_a" {
   availability_zone = data.aws_availability_zones.available.names[0]
 
   tags = {
-    Name  = "WordPress Subnet ${data.aws_availability_zones.available.names[0]}"
+    Name  = "WordPress Subnet in ${data.aws_availability_zones.available.names[0]}"
     Owner = "Dmitry Demitov"
   }
 }
@@ -69,7 +69,7 @@ resource "aws_subnet" "wordpress_subnet_b" {
   availability_zone = data.aws_availability_zones.available.names[1]
 
   tags = {
-    Name  = "WordPress Subnet ${data.aws_availability_zones.available.names[1]}"
+    Name  = "WordPress Subnet in ${data.aws_availability_zones.available.names[1]}"
     Owner = "Dmitry Demitov"
   }
 }
@@ -84,7 +84,7 @@ resource "aws_instance" "wordpress_ec2_a" {
   subnet_id = aws_subnet.wordpress_subnet_a.id
 
   tags = {
-    Name  = "WordPress EC2"
+    Name  = "WordPress EC2 in ${data.aws_availability_zones.available.names[0]}"
     Owner = "Dmitry Demitov"
   }
 }
@@ -94,12 +94,12 @@ resource "aws_instance" "wordpress_ec2_a" {
 #------------------------------------
 resource "aws_instance" "wordpress_ec2_b" {
   ami                    = "ami-08cfb7b19d5cd546d"
-  instance_type          = "t2.micro"
+  instance_type          = var.instance_type
   vpc_security_group_ids = [aws_security_group.wordpress_sg.id]
   subnet_id = aws_subnet.wordpress_subnet_b.id
   
   tags = {
-    Name  = "WordPress EC2"
+    Name  = "WordPress EC2 in ${data.aws_availability_zones.available.names[1]}"
     Owner = "Dmitry Demitov"
   }
 }
