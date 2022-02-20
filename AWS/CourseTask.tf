@@ -79,7 +79,7 @@ resource "aws_subnet" "wordpress_subnet_b" {
 #------------------------------------
 resource "aws_instance" "wordpress_ec2_a" {
   ami                    = "ami-08cfb7b19d5cd546d"
-  instance_type          = "t2.micro"
+  instance_type          = var.instance_type
   vpc_security_group_ids = [aws_security_group.wordpress_sg.id]
   subnet_id              = aws_subnet.wordpress_subnet_a.id
 
