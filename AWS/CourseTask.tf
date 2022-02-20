@@ -1,7 +1,7 @@
 #------------------------------------
 # Final work on the AWS course
 #
-# Maintaner: Dmitry Demitov
+# Maintainer: Dmitry Demitov
 # email: demitov@gmail.com
 #------------------------------------
 
@@ -23,24 +23,84 @@ provider "aws" {
   region  = "eu-west-3"
 }
 
+# получаем список доступых в регионе зон
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
 #------------------------------------
-# Create virtual private cloud (VPC)
+# Create Virtual Private Cloud (VPC)
 #------------------------------------
-# resource "aws_vpc" "wordpress_vpc" {
-#
-# }
+# Local Network IP range
+# 10.0.0.0    - 10.255.255.255.255
+# 172.16.0.0  - 172.31..255.255
+# 192.168.0.0 - 192.168.255.255
+
+resource "aws_vpc" "wordpress_vpc" {
+  cidr_block       = "10.0.0.0/16"
+  instance_tenancy = "default"
+
+  tags = {
+    Name  = "WordPress VPC"
+    Owner = "Dmitry Demitov"
+  }
+}
+
+#------------------------------------
+# Create first subnet
+#------------------------------------
+resource "aws_subnet" "wordpress_subnet_a" {
+  vpc_id            = aws_vpc.wordpress_vpc.id
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = data.aws_availability_zones.available.names[0]
+
+  tags = {
+    Name  = "WordPress Subnet ${data.aws_availability_zones.available.names[0]}"
+    Owner = "Dmitry Demitov"
+  }
+}
+
+#------------------------------------
+# Create second subnet
+#------------------------------------
+resource "aws_subnet" "wordpress_subnet_b" {
+  vpc_id            = aws_vpc.wordpress_vpc.id
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = data.aws_availability_zones.available.names[1]
+
+  tags = {
+    Name  = "WordPress Subnet ${data.aws_availability_zones.available.names[1]}"
+    Owner = "Dmitry Demitov"
+  }
+}
 
 #------------------------------------
 # Create EC2 instances (EC2)
 #------------------------------------
-resource "aws_instance" "wordpress_ec2" {
+resource "aws_instance" "wordpress_ec2_a" {
   ami                    = "ami-08cfb7b19d5cd546d"
   instance_type          = "t2.micro"
   vpc_security_group_ids = [aws_security_group.wordpress_sg.id]
-  # user_data              = <filename>
+  subnet_id = aws_subnet.wordpress_subnet_a.id
+
   tags = {
-    name  = "WordPress EC2"
-    owner = "Dmitry Demitov"
+    Name  = "WordPress EC2"
+    Owner = "Dmitry Demitov"
+  }
+}
+
+#------------------------------------
+# Create EC2 instances (EC2)
+#------------------------------------
+resource "aws_instance" "wordpress_ec2_b" {
+  ami                    = "ami-08cfb7b19d5cd546d"
+  instance_type          = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.wordpress_sg.id]
+  subnet_id = aws_subnet.wordpress_subnet_b.id
+  
+  tags = {
+    Name  = "WordPress EC2"
+    Owner = "Dmitry Demitov"
   }
 }
 
@@ -50,7 +110,7 @@ resource "aws_instance" "wordpress_ec2" {
 resource "aws_security_group" "wordpress_sg" {
   name        = "wordpress_SG"
   description = "HA WordPress Web server"
-  # vpc_id      = aws_vpc.main.id
+  vpc_id      = aws_vpc.wordpress_vpc.id
 
   # входящий трафик по 80 порту с любых внешних адресов по протоколу tcp
   ingress {
@@ -82,7 +142,7 @@ resource "aws_security_group" "wordpress_sg" {
   }
 
   tags = {
-    name  = "WordPress SG"
-    owner = "Dmitry Demitov"
+    Name  = "WordPress SG"
+    Owner = "Dmitry Demitov"
   }
 }
