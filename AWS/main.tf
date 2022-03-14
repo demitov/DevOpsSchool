@@ -14,16 +14,35 @@ terraform {
       # 2022-02-19
     }
   }
+  required_version = "~>1.0"
 }
 
 # провайдер AWS
 provider "aws" {
   region = var.aws_region
+  access_key = var.aws_access_key
+  secret_key = var.aws_secret_key
+  default_tags {
+    tags = {
+      Owner = "Dmitry Demitov"
+    }
+  }
 }
 
 # Get a list of availability zones
 data "aws_availability_zones" "available" {
   state = "available"
+}
+
+# Get AMI for last Amazon Linux EC2
+data "aws_ami" "amazon-linux" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-kernel-5.10-hvm-*-x86_64-gp2"]
+  }
+  owners = ["amazon"]
 }
 
 # Create VPC
@@ -33,8 +52,7 @@ resource "aws_vpc" "vpc" {
   enable_dns_support   = true
 
   tags = {
-    Name  = "VPC"
-    Owner = var.owner
+    Name = "VPC"
   }
 }
 
@@ -43,8 +61,7 @@ resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.vpc.id
 
   tags = {
-    Name  = "IGW"
-    Owner = var.owner
+    Name = "IGW"
   }
 }
 
@@ -62,8 +79,7 @@ resource "aws_subnet" "subnet-a" {
   availability_zone = data.aws_availability_zones.available.names[0]
 
   tags = {
-    Name  = "Subnet in ${data.aws_availability_zones.available.names[0]}"
-    Owner = var.owner
+    Name = "Subnet in ${data.aws_availability_zones.available.names[0]}"
   }
 }
 # Create route association
@@ -78,8 +94,7 @@ resource "aws_subnet" "subnet-b" {
   availability_zone = data.aws_availability_zones.available.names[1]
 
   tags = {
-    Name  = "Subnet in ${data.aws_availability_zones.available.names[1]}"
-    Owner = var.owner
+    Name = "Subnet in ${data.aws_availability_zones.available.names[1]}"
   }
 }
 # Create route association
@@ -92,42 +107,48 @@ resource "aws_route_table_association" "rta-subnet-b" {
 # ----------------------------------
 # Create EC2 instances (EC2)
 resource "aws_instance" "wp-ec2-a" {
-  ami                         = var.instance_ami
+  ami                         = data.aws_ami.amazon-linux.id
   instance_type               = var.instance_type
   vpc_security_group_ids      = [aws_security_group.sg-ec2.id]
   subnet_id                   = aws_subnet.subnet-a.id
   associate_public_ip_address = true
-  key_name                    = var.key_name
   user_data = templatefile("userdata.tpl", {
-    efs = aws_efs_file_system.efs-fs.id
+    efs         = aws_efs_file_system.efs-fs.id
+    db_host     = aws_db_instance.wp-db.endpoint
+    db_name     = var.db_name
+    db_username = var.db_username
+    db_password = var.db_password
+    url         = aws_lb.wp-lb.dns_name
   })
-  depends_on = [aws_db_instance.wp-db]
+  depends_on = [aws_db_instance.wp-db, aws_lb.wp-lb]
 
   tags = {
-    Name  = "WP EC2 in ${data.aws_availability_zones.available.names[0]}"
-    Owner = var.owner
+    Name = "WP EC2 in ${data.aws_availability_zones.available.names[0]}"
   }
 }
 
 resource "aws_instance" "wp-ec2-b" {
-  ami                         = var.instance_ami
+  ami                         = data.aws_ami.amazon-linux.id
   instance_type               = var.instance_type
   vpc_security_group_ids      = [aws_security_group.sg-ec2.id]
   subnet_id                   = aws_subnet.subnet-b.id
   associate_public_ip_address = true
-  key_name                    = var.key_name
   user_data = templatefile("userdata.tpl", {
-    efs = aws_efs_file_system.efs-fs.id
+    efs         = aws_efs_file_system.efs-fs.id
+    db_host     = aws_db_instance.wp-db.endpoint
+    db_name     = var.db_name
+    db_username = var.db_username
+    db_password = var.db_password
+    url         = aws_lb.wp-lb.dns_name
   })
-  depends_on = [aws_db_instance.wp-db]
+  depends_on = [aws_db_instance.wp-db, aws_lb.wp-lb]
 
   tags = {
-    Name  = "WP EC2 in ${data.aws_availability_zones.available.names[1]}"
-    Owner = var.owner
+    Name = "WP EC2 in ${data.aws_availability_zones.available.names[1]}"
   }
 }
 
-# Create Security Groups
+# Create Security Group HTTP allow
 resource "aws_security_group" "sg-ec2" {
   name        = "SG_for_EC2"
   description = "Allow HTTP inbound traffic"
@@ -139,13 +160,6 @@ resource "aws_security_group" "sg-ec2" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  ingress {
-    description = "Allow all inbound traffic on the 22 port"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
   egress {
     from_port   = 0
     to_port     = 0
@@ -153,18 +167,17 @@ resource "aws_security_group" "sg-ec2" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags = {
-    Owner = var.owner
+    Name = "SG HTTP Allow"
   }
 }
 
-
+# ----------------------------------
 # Create EFS File System
 resource "aws_efs_file_system" "efs-fs" {
   creation_token = "EFS_File_System"
   encrypted      = true
   tags = {
-    Name  = "EFS File System"
-    Owner = var.owner
+    Name = "EFS File System"
   }
 }
 
@@ -187,8 +200,7 @@ resource "aws_security_group" "sg-efs" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags = {
-    Name  = "SG for EFS"
-    Owner = var.owner
+    Name = "SG for EFS"
   }
 }
 
@@ -211,7 +223,6 @@ resource "aws_efs_mount_target" "wp-efs-mnt-tgt-b" {
 
 # --------------------------------------
 # Create Relation Database Service (RDS)
-
 # Create Subnet for RDS
 resource "aws_db_subnet_group" "rds-subnet-group" {
   name       = "rds-subnet-group"
@@ -237,14 +248,12 @@ resource "aws_security_group" "sg-rds" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags = {
-    Name  = "SG for RDS"
-    Owner = var.owner
+    Name = "SG for RDS"
   }
 }
 
 # Create MySql instance (RDS)
 resource "aws_db_instance" "wp-db" {
-  # identifier = "?"
   engine                 = "mysql"
   engine_version         = "5.7"
   instance_class         = "db.t2.micro"
@@ -260,7 +269,61 @@ resource "aws_db_instance" "wp-db" {
   depends_on             = [aws_security_group.sg-rds, aws_db_subnet_group.rds-subnet-group]
 
   tags = {
-    Name  = "RDS"
-    Owner = var.owner
+    Name = "RDS"
   }
+}
+
+
+# ----------------------------------
+# Create Load Balancer (ALB)
+resource "aws_lb" "wp-lb" {
+  name                       = "LoadBalancer"
+  internal                   = false
+  load_balancer_type         = "application"
+  subnets                    = [aws_subnet.subnet-a.id, aws_subnet.subnet-b.id]
+  security_groups            = [aws_security_group.sg-ec2.id]
+  enable_deletion_protection = false
+
+  tags = {
+    Name = "WP Load Balancer"
+  }
+}
+
+# Create Target Group
+resource "aws_lb_target_group" "wp-lb-tg" {
+  name     = "TargetGroup"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.vpc.id
+}
+
+# Create Listener 80 port
+resource "aws_lb_listener" "wp-lb" {
+  load_balancer_arn = aws_lb.wp-lb.arn
+  port              = "80"
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.wp-lb-tg.arn
+  }
+}
+
+# Register wp-ec2-a in TG
+resource "aws_lb_target_group_attachment" "tg-attach-wp-a" {
+  target_group_arn = aws_lb_target_group.wp-lb-tg.arn
+  target_id        = aws_instance.wp-ec2-a.id
+  port             = 80
+}
+
+# Register wp-ec2-b in TG
+resource "aws_lb_target_group_attachment" "tg-attach-wp-b" {
+  target_group_arn = aws_lb_target_group.wp-lb-tg.arn
+  target_id        = aws_instance.wp-ec2-b.id
+  port             = 80
+}
+
+# ----------------------------------
+# Output LoadBalancer DNS Name
+output "Balancer-Wordpress" {
+  value = "http://${aws_lb.wp-lb.dns_name}"
 }
