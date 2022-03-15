@@ -3,3 +3,4 @@
 *.tfstate
 *.tfstate.*
 /Docker/pgdata
+Docker/database.env
