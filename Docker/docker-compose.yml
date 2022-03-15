@@ -8,6 +8,12 @@ services:
             dockerfile: Dockerfile.frontend
         tty: true
         container_name: frontend
+        healthcheck:
+            test: curl -sS http://127.0.0.1:3000 || echo 1
+            interval: 1m30s
+            timeout: 30s
+            retries: 3
+            start_period: 30s
         restart: unless-stopped
         ports:
             - 3000:3000
@@ -22,6 +28,12 @@ services:
             context: .
             dockerfile: Dockerfile.backend
         container_name: backend
+        healthcheck:
+            test: curl -sS http://127.0.0.1:8000 || echo 1
+            interval: 1m30s
+            timeout: 30s
+            retries: 3
+            start_period: 30s
         restart: unless-stopped
         ports:
             - 8000:8000
@@ -33,17 +45,20 @@ services:
     database:
         image: postgres
         container_name: database
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U habrpguser -d habrdb"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
         restart: unless-stopped
         env_file:
             - database.env
         volumes:
-            - pgdata:/var/lib/postgresql/data
+            - ./pgdata:/var/lib/postgresql/data
         networks:
             - backend
 
 networks:
     frontend:
     backend:
-
-volumes:
-    pgdata:

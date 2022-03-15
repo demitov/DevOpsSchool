@@ -17,5 +17,4 @@ RUN PATH=/lib_catalog/bin:$PATH
 WORKDIR /lib_catalog
 RUN chmod +x ./docker-entrypoint.sh
 EXPOSE 8000
-# HEALTHCHECK 
 ENTRYPOINT [ "./docker-entrypoint.sh" ]
