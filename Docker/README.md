@@ -7,12 +7,7 @@ git clone https://github.com/demitov/DevOpsSchool.git
 cd DevOpsSchool/Docker
 ```
 
-Create a file *database.env* with the following content:
-```
-POSTGRES_USER=django
-POSTGRES_PASSWORD=django
-POSTGRES_DB=django
-```
+Rename file *database.env.example* to database.env. Fill username, password and database name variables
 
 To build project run in project root directory:
 ```
