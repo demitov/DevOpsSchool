@@ -52,14 +52,25 @@ data "aws_ami" "amazon-linux" {
 # -------------------------------
 # EC2 instance
 resource "aws_instance" "nginx" {
-  ami                    = data.aws_ami.amazon-linux.id # ami-0d79ebfba811235cd ???
+  ami                    = data.aws_ami.amazon-linux.id
   instance_type          = "t2.micro"
   vpc_security_group_ids = data.aws_security_groups.allow-sg.ids
   subnet_id              = data.aws_subnets.allow-subnets.ids[0]
   key_name               = "dmitrii_demitov@epam.com"
+  user_data              = templatefile("userdata.tpl", {})
 
   tags = {
     Name  = "Nginx"
     Owner = "dmitrii_demitov@epam.com"
   }
+  volume_tags = {
+    Owner = "dmitrii_demitov@epam.com"
+  }
+}
+
+# -------------------------------
+# RDS
+
+output "nginx-public_dns" {
+  value = aws_instance.nginx.public_dns
 }
