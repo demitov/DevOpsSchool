@@ -10,11 +10,22 @@ terraform {
       version = "4.1.0"
     }
   }
+  backend "s3" {
+    bucket  = "tf-state-demitov"
+    encrypt = true
+    key     = "terraform.tfstate"
+    region  = "eu-central-1"
+  }
   required_version = "~>1.0"
 }
 
 provider "aws" {
   region = "eu-central-1"
+  default_tags {
+    tags = {
+      Owner = "dmitrii_demitov@epam.com"
+    }
+  }
 }
 
 # -------------------------------
@@ -68,9 +79,15 @@ resource "aws_instance" "nginx" {
   }
 }
 
-# -------------------------------
-# RDS
+module "rds" {
+  source        = "./modules/rds"
+  allow-subnets = data.aws_subnets.allow-subnets.ids
+  allow-sg      = data.aws_security_groups.allow-sg.ids
+}
 
+# output "allow-subnets" {
+#   value = data.aws_subnets.allow-subnets.ids
+# }
 output "nginx-public_dns" {
   value = aws_instance.nginx.public_dns
 }
