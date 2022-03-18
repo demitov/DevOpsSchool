@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bashs
 
 # Install nginx
 amazon-linux-extras enable nginx1

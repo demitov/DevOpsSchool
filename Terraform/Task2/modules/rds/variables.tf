@@ -21,9 +21,3 @@ variable "db-username" {
   type        = string
   default     = "dbuser"
 }
-
-variable "db-password" {
-  description = "Database user password"
-  type        = string
-  default     = "Password1!"
-}

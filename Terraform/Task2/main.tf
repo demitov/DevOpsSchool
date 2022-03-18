@@ -79,15 +79,14 @@ resource "aws_instance" "nginx" {
   }
 }
 
+# -------------------------------
+# DB instance
 module "rds" {
   source        = "./modules/rds"
   allow-subnets = data.aws_subnets.allow-subnets.ids
   allow-sg      = data.aws_security_groups.allow-sg.ids
 }
 
-# output "allow-subnets" {
-#   value = data.aws_subnets.allow-subnets.ids
-# }
 output "nginx-public_dns" {
   value = aws_instance.nginx.public_dns
 }

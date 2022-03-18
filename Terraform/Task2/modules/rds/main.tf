@@ -10,6 +10,7 @@ resource "random_password" "db_password" {
   special = false
 }
 
+# Create DB instance (RDS)
 resource "aws_db_instance" "tf-db" {
   identifier             = "rds-demitov"
   engine                 = "mysql"
@@ -26,7 +27,7 @@ resource "aws_db_instance" "tf-db" {
   vpc_security_group_ids = var.allow-sg
   db_name                = var.db-name
   username               = var.db-username
-  password               = random_password.db_password.result #?!
+  password               = random_password.db_password.result
 
   tags = {
     Name  = "RDS"
