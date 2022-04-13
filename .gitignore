@@ -2,5 +2,8 @@
 .terraform*
 *.tfstate
 *.tfstate.*
+*.crt
+*.csr
+*.key
 /Docker/pgdata
 Docker/database.env
