@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: deployment-emptydir
+  name: deployment-emptydir
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deployment-emptydir
+  template:
+    metadata:
+      labels:
+        app: deployment-emptydir
+    spec:
+      volumes:
+        - name: emptydir-volume
+          emptyDir:
+            {}
+      containers:
+      - name: alpine
+        image: alpine
+        volumeMounts:
+          - mountPath: /var/emptydir
+            name: emptydir-volume
+        command: ["/bin/sh"]
+        args: ["-c", "while true; do date >> /var/emptydir/file.txt; sleep 5; done"]
+status: {}
